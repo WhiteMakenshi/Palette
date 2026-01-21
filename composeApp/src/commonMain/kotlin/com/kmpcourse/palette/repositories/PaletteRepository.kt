@@ -7,9 +7,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Title: [FileName].kt
  * Author: solra
- * Date Created: 19/01/2026 
  * Description: [Purpose of the file]
  */
 class PaletteRepository(private val database: RoomDb) {

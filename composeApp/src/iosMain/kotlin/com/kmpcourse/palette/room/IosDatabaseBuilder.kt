@@ -8,10 +8,8 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 
 /**
- * Title: [FileName].kt
  * Author: solra
  * Date Created: 19/01/2026
- * Description: [Purpose of the file]
  */
 fun iosDatabaseBuilder() : RoomDatabase.Builder<RoomDb> {
     val dbFile = documentDirectory() + "/palette.db"

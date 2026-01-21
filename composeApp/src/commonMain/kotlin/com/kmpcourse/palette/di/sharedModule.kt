@@ -20,10 +20,8 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 /**
- * Title: [FileName].kt
  * Author: solra
  * Date Created: 19/01/2026
- * Description: [Purpose of the file]
  */
 val sharedModule = module {
     single <RoomDb> { CreateDatabase(get()).getDatabase() }

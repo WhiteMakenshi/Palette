@@ -10,10 +10,8 @@ import com.kmpcourse.palette.models.ColorModel
 import com.kmpcourse.palette.models.PaletteModel
 
 /**
- * Title: [FileName].kt
  * Author: solra
  * Date Created: 19/01/2026 
- * Description: [Purpose of the file]
  */
 @Database(
     entities = [
