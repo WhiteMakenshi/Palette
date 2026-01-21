@@ -1,16 +1,22 @@
 package com.kmpcourse.palette.models
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
 /**
  * Author: solra
  * Date Created: 17/01/2026
- */
+*/
+@Entity(tableName = "colors")
 data class ColorModel(
-    val id: Int,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    val idPalette: Int,
     val red: Int,
     val green: Int,
     val blue: Int,
     val hex: String,
-    var rgb: String = "RGB($red, $green, $blue)"
+    val rgb: String
 ) {
     companion object {
         fun rgbToHex(r: Int, g: Int, b: Int): String {

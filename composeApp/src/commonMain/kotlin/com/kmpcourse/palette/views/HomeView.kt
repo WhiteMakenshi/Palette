@@ -2,6 +2,7 @@ package com.kmpcourse.palette.views
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,19 +15,28 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowCircleRight
 import androidx.compose.material.icons.filled.CopyAll
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,12 +51,20 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.kmpcourse.palette.components.ColorCard
+import com.kmpcourse.palette.components.IconTitle
+import com.kmpcourse.palette.components.MainAlert
 import com.kmpcourse.palette.components.MainSlider
+import com.kmpcourse.palette.components.ModalPalette
 import com.kmpcourse.palette.copyToClipboard
 import com.kmpcourse.palette.models.ColorModel
+import com.kmpcourse.palette.models.PaletteModel
+import com.kmpcourse.palette.navigation.Palette
 import com.kmpcourse.palette.viewModels.ColorViewModel
+import com.kmpcourse.palette.viewModels.PaletteViewModel
 import org.jetbrains.compose.resources.painterResource
+import org.koin.compose.viewmodel.koinViewModel
 import palette.composeapp.generated.resources.Res
 import palette.composeapp.generated.resources.palette
 
@@ -56,9 +74,9 @@ import palette.composeapp.generated.resources.palette
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeView(viewModel: ColorViewModel = viewModel { ColorViewModel() }) {
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val colors by viewModel.colors.collectAsStateWithLifecycle()
+fun HomeView(navController: NavController) {
+    val viewModel = koinViewModel<PaletteViewModel>()
+    var showModal by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -72,40 +90,23 @@ fun HomeView(viewModel: ColorViewModel = viewModel { ColorViewModel() }) {
                     }
                 },
                 actions = {
-                    IconButton({ viewModel.copyAll() }) {
-                        Icon(Icons.Default.CopyAll, "Copy All")
-                    }
-                },
-                navigationIcon = {
-                    IconButton({ viewModel.reset() }) {
-                        Icon(Icons.Default.Restore, "Reset")
+                    IconButton({ showModal= true }) {
+                        Icon(Icons.Default.Add, "Add")
                     }
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                viewModel.generateColor()
-            },
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ) {
-                Icon(imageVector = Icons.Default.Add, "Add")
-            }
-        }
     ) { paddingValues ->
-        ContentHomeView(modifier = Modifier.padding(paddingValues),
-            colors,
-            { id, red, green, blue ->
-                viewModel.editColor(id, red, green, blue)
-            },
-            {
-                copyToClipboard(it)
-            },
-            {
-                viewModel.removeColorById(it)
-            }
-        )
+        ContentHomeView(modifier = Modifier.padding(paddingValues), navController)
+        if (showModal) {
+            ModalPalette(
+                palette = null,
+                onDismiss = { showModal = false },
+                onSave = {
+                    viewModel.insertPalette(it)
+                }
+            )
+        }
     }
 }
 
@@ -113,87 +114,86 @@ fun HomeView(viewModel: ColorViewModel = viewModel { ColorViewModel() }) {
 @Composable
 fun ContentHomeView(
     modifier: Modifier,
-    list : List<ColorModel>,
-    onEdit: (Int, Int, Int, Int) -> Unit,
-    onCopy: (String) -> Unit,
-    onDelete: (Int) -> Unit,
+    navController: NavController
 ) {
-    val modalState = rememberModalBottomSheetState (
-        skipPartiallyExpanded = true
-    )
+    val viewModel = koinViewModel<PaletteViewModel>()
+    val palettes by viewModel.getPalettes().collectAsState(null)
+    var expanded by remember { mutableStateOf<Int?>(null) }
     var showModal by remember { mutableStateOf(false) }
-    var red by remember { mutableStateOf(0f) }
-    var green by remember { mutableStateOf(0f) }
-    var blue by remember { mutableStateOf(0f) }
-    var id by remember { mutableStateOf(0) }
+    var selectedPalette by remember { mutableStateOf<PaletteModel?>(null) }
+    var showAlert by remember { mutableStateOf(false) }
 
     LazyColumn(modifier) {
-        items(list) { color ->
-            ColorCard(
-                color.hex,
-                color.rgb,
-                {
-                    red = color.red.toFloat()
-                    green = color.green.toFloat()
-                    blue = color.blue.toFloat()
-                    id = color.id
-
-                    showModal = true
+        items(palettes.orEmpty()) { item ->
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(item.name) },
+                supportingContent = { Text(item.desc, color = Color.Gray)},
+                leadingContent = {
+                    Box {
+                        IconButton({ expanded = item.id }) {
+                            Icon(Icons.Default.MoreVert, "more")
+                        }
+                        DropdownMenu(
+                            expanded = expanded == item.id,
+                            onDismissRequest = { expanded = null },
+                            modifier = Modifier.background(Color(0xFF2B3667))
+                        ) {
+                            DropdownMenuItem(
+                                text = { IconTitle("Edit", Icons.Default.Edit) },
+                                onClick = {
+                                    selectedPalette = item
+                                    showModal = true
+                                    expanded = null
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { IconTitle("Delete", Icons.Default.Delete) },
+                                onClick = {
+                                    selectedPalette = item
+                                    showAlert = true
+                                    expanded= null
+                                }
+                            )
+                        }
+                    }
                 },
-                {
-                    onCopy(color.hex)
+                trailingContent = {
+                    IconButton({}) {
+                        Icon(Icons.Default.ArrowCircleRight, "next")
+                    }
                 },
-                {
-                    onDelete(color.id)
+                modifier = Modifier.clickable {
+                    navController.navigate(Palette(item.id, item.name))
                 }
             )
+            HorizontalDivider()
         }
     }
-
+    // modal edit
     if (showModal) {
-        ModalBottomSheet(
-            onDismissRequest = { showModal = false },
-            sheetState = modalState
-        ) {
-            Column(modifier = Modifier.padding(40.dp)
-                .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Edit Color", fontWeight = FontWeight.Bold, fontSize = 25.sp)
-                Spacer(modifier = Modifier.height(30.dp))
-
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .size(80.dp)
-                    .shadow(elevation = 12.dp)
-                    .background(Color(red.toInt(), green.toInt(), blue.toInt()))
-                )
-
-                Spacer(modifier = Modifier.height(25.dp))
-
-                MainSlider(
-                    value = red,
-                    onValueChange = { red = it },
-                    color = Color.Red
-                )
-                MainSlider(
-                    value = green,
-                    onValueChange = { green = it },
-                    color = Color.Green
-                )
-                MainSlider(
-                    value = blue,
-                    onValueChange = { blue = it },
-                    color = Color.Blue
-                )
-
-                OutlinedButton({
-                    onEdit(id, red.toInt(), green.toInt(), blue.toInt())
-                    showModal = false
-                }) {
-                    Text("Change Color", fontWeight = FontWeight.Bold)
-                }
+        ModalPalette(
+            palette = selectedPalette,
+            onDismiss = { showModal = false },
+            onSave = {
+                viewModel.updatePalette(it)
             }
-        }
+        )
+    }
+
+    // alert
+    if (showAlert) {
+        MainAlert(
+            "Remove palette",
+            "Are you sure you want to remove this palette?",
+            {
+                selectedPalette?.let {
+                    viewModel.deletePalette(it)
+                    showAlert = false
+                }
+            },
+            {
+                showAlert = false
+            })
     }
 }

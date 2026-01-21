@@ -1,35 +1,37 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# Palette - Kotlin Multiplatform
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+This is a Kotlin Multiplatform project that showcases how to build a color palette generator for Android and iOS using Compose Multiplatform.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+The application allows users to generate color palettes from an image and interact with the generated colors.
 
-### Build and Run Android Application
+## Project Structure
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+*   `./composeApp`: This is the shared module containing the application logic and UI, written in Compose Multiplatform.
+    *   `src/commonMain`: Contains the common code for all platforms (Android and iOS), including UI components and business logic.
+    *   `src/androidMain`: Contains Android-specific code.
+    *   `src/iosMain`: Contains iOS-specific code.
+*   `./iosApp`: The iOS application project.
 
-### Build and Run iOS Application
+## How to Build and Run
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+### Android
+
+To build and run the development version of the Android app, you can use the run configuration in Android Studio or execute the following command in your terminal:
+
+```shell
+./gradlew :composeApp:assembleDebug
+```
+
+On Windows:
+
+```shell
+.\gradlew.bat :composeApp:assembleDebug
+```
+
+### iOS
+
+To build and run the iOS app, you can use the run configuration in Android Studio/Fleet or open the `iosApp` directory in Xcode and run it from there.
 
 ---
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+This project is based on the official Kotlin Multiplatform templates. To learn more, visit the [Kotlin Multiplatform documentation](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html).
